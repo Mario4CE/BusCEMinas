@@ -1,3 +1,4 @@
+; Archivo con la interfaz gráfica
 #lang racket/gui
 
 ; Librerias de gui 
@@ -180,7 +181,6 @@
                (crear-fila-botones parent (cdr fila-datos) fila (+ columna 1)))]))
 
 ; FUNCIONES MODULARES VACÍAS PARA FUTURAS IMPLEMENTACIONES
-; (Estas funciones pueden ser implementadas por otros compañeros de trabajo)
 
 ; Función para manejar el click en una casilla
 (define (manejar-click-casilla fila columna boton evento)
