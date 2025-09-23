@@ -81,4 +81,4 @@
 (define (recorrer-fila fila funcion indice-fila columna)
   (cond [(null? fila) '()] ; Caso base
         [else (cons (funcion (car fila) indice-fila columna)
-                   (recorrer-fila (cdr fila) funcion indice-fila (+ columna 1)))])) ; Recorrer recursivamente    
+                   (recorrer-fila (cdr fila) funcion indice-fila (+ columna 1)))])) ; Recorrer recursivamente
