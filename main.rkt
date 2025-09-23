@@ -21,10 +21,16 @@
 (define (coordenadas-a-indice fila columna ancho)
   (+ (* fila ancho) columna))
 
+;; Esta función la acabo de añadir por un lenght que se me fue en la linea 33 ***
+(define (longitudd lista)
+  (cond((null? lista) 0)                              
+    [else (+ 1 (longitudd (cdr lista)))]))       
+
+
 ; Función para obtener valor de la lista barajada según posición *
 (define (obtener-valor-barajado fila columna)
   (define indice (coordenadas-a-indice fila columna ancho-tablero))
-  (cond [(and (>= indice 0) (< indice (length lista-barajada)))
+  (cond [(and (>= indice 0) (< indice (longitudd lista-barajada)))
          (list-ref lista-barajada indice)]
         [else 0])) ; valor por defecto si está fuera de rango
 
