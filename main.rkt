@@ -4,7 +4,8 @@
 ; Librerias de gui 
 (require racket/gui/base 
          racket/class
-         "logica.rkt") ; Archivo con la lógica del juego
+         "logica.rkt" ; Archivo con la lógica del juego
+         "barajado.rkt") ; Archivo con lógica de barajado 
 
 (define ancho-tablero 8)
 (define alto-tablero 8)
@@ -14,6 +15,18 @@
 (define estado-juego 'activo) ; 'activo, 'ganado, 'perdido
 (define casillas-descubiertas 0)
 (define total-casillas-seguras 0)
+(define lista-barajada '()) ; Lista barajada con valores 0 y 1
+
+; Función para convertir coordenadas (fila, columna) a índice lineal *
+(define (coordenadas-a-indice fila columna ancho)
+  (+ (* fila ancho) columna))
+
+; Función para obtener valor de la lista barajada según posición *
+(define (obtener-valor-barajado fila columna)
+  (define indice (coordenadas-a-indice fila columna ancho-tablero))
+  (cond [(and (>= indice 0) (< indice (length lista-barajada)))
+         (list-ref lista-barajada indice)]
+        [else 0])) ; valor por defecto si está fuera de rango
 
 ; Función para validar dimensiones del tablero 
 ; Estas dimensiones máximas y mínimas son especificadas 
@@ -109,6 +122,11 @@
 ; funcion que genera el tablero 
 (define (generar-tablero)
     (define num-minas (calcular-minas ancho-tablero alto-tablero nivel-dificultad))
+    (define total-casillas (* ancho-tablero alto-tablero)) ;Total casillas para la baraja*
+    
+    ; Generar lista barajada con 0s y 1s *
+    (set! lista-barajada (barajar (lista1 total-casillas num-minas) total-casillas))
+    
     (set! tablero (crear-tablero ancho-tablero alto-tablero))
     (set! estado-juego 'activo)
     (set! casillas-descubiertas 0)
@@ -192,14 +210,26 @@
                [else #f])]
         [else #f])) ; Juego terminado, no hacer nada
 
-; Función modular vacía para descubrir una casilla
+; Función implementada para descubrir una casilla usando la lista barajada
 (define (descubrir-casilla fila columna boton)
-  ; TODO: Implementar lógica para descubrir casilla
-  ; - Verificar si es mina (terminar juego)
-  ; - Calcular minas adyacentes
-  ; - Si es 0, descubrir casillas vecinas recursivamente
-  (send boton set-label "?")
-  (send boton enable #f))
+  ; Obtener el valor de la lista barajada para esta posición *
+  (define valor-barajado (obtener-valor-barajado fila columna))
+  
+  ; Mostrar el valor (0 o 1) en el botón *
+  (send boton set-label (number->string valor-barajado))
+  (send boton enable #f)
+  
+  ; Incrementar contador de casillas descubiertas
+  (set! casillas-descubiertas (+ casillas-descubiertas 1))
+  
+  ; Verificar si se encontró una mina (valor 1) *
+  (cond [(= valor-barajado 1)
+         (set! estado-juego 'perdido)
+         (send boton set-label "mina") ;Imprime mina para evitar confuciones
+         (mostrar-mensaje-derrota)]
+        [else
+         ; Verificar victoria si no es mina
+         (verificar-victoria)]))
 
 ; Función modular vacía para marcar/desmarcar bandera
 (define (marcar-bandera fila columna boton)
@@ -251,8 +281,6 @@
 (define (reiniciar-juego ventana-actual)
   (send ventana-actual show #f)
   (generar-tablero))
-
-
 
 ; Mostrar ventana
 (send frame show #t)
