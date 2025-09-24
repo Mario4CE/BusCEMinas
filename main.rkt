@@ -5,7 +5,8 @@
 (require racket/gui/base 
          racket/class
          "logica.rkt" ; Archivo con la lógica del juego
-         "barajado.rkt") ; Archivo con lógica de barajado 
+         "barajado.rkt" ; Archivo con lógica de barajado 
+         "adyacentes.rkt") ; Archivo con lógica de el dscubrimeinto de minas adyacentes
 
 (define ancho-tablero 8)
 (define alto-tablero 8)
@@ -233,9 +234,22 @@
          (set! estado-juego 'perdido)
          (send boton set-label "mina") ;Imprime mina para evitar confuciones
          (mostrar-mensaje-derrota)]
-        [else
-         ; Verificar victoria si no es mina
-         (verificar-victoria)]))
+    ;; Caso casilla segura -> revisar minas adyacentes
+    [else
+     (define minas (calcular-minas-adyacentes lista-barajada fila columna))
+     (cond
+       ;; Si hay minas alrededor, solo mostrar el número
+       [(> minas 0)
+        (send boton set-label (number->string minas))
+        (send boton enable #f)
+        (set! casillas-descubiertas (+ casillas-descubiertas 1))
+        (verificar-victoria)]
+
+       ;; Si no hay minas alrededor -> expansión recursiva
+       [else
+        (descubrir-vecinas-gui fila columna)
+        (verificar-victoria)])]))
+
 
 ; Función modular vacía para marcar/desmarcar bandera
 (define (marcar-bandera fila columna boton)
@@ -278,10 +292,16 @@
 
 ; Función modular vacía para mostrar mensaje de derrota
 (define (mostrar-mensaje-derrota)
-  ; TODO: Implementar mensaje de derrota
-  ; - Revelar todas las minas
-  ; - Mostrar mensaje de game over
+  ;; Revelar todas las minas en el tablero
+  (for ([i (in-range alto-tablero)]
+        [j (in-range ancho-tablero)])
+    (when (= (obtener-valor-barajado i j) 1)
+      (define boton (list-ref (list-ref tablero-visual i) j))
+      (send boton set-label "MINA")
+      (send boton enable #f)))
+  ;; Mensaje final
   (message-box "¡Oh no!" "¡Has perdido! Encontraste una mina."))
+
 
 ; Función para reiniciar el juego
 (define (reiniciar-juego ventana-actual)
