@@ -1,18 +1,16 @@
 #lang racket
+(require racket/random)
 
-; Exportar las funciones que quieres usar en otros archivos
-(provide calcular-minas 
+(provide calcular-minas
          crear-tablero
          obtener-valor-casilla
          actualizar-casilla
          obtener-fila
          contar-elementos
-         recorrer-tablero)
+         recorrer-tablero
+         generar-lista-barajada)
 
-; Función para calcular las minas según dificultad
-; 'facil -> 10% de las minas 
-; 'medio -> 15% de las minas
-; 'dificil -> 20% de las minas
+; Calcular minas según dificultad
 (define (calcular-minas ancho alto dificultad)
   (define total-casillas (* ancho alto))
   (case dificultad
@@ -21,64 +19,93 @@
     [(dificil) (inexact->exact (ceiling (* total-casillas 0.20)))]
     [else 10]))
 
-; Esta funcion crea, recursivamente, una lista '() de listas '(())
-; de tamaño ancho x alto, inicializada con ceros
-; 0 = vacio, 1 = mina
+; Crear tablero (matriz de ceros)
 (define (crear-tablero ancho alto)
-    (cond [(= alto 0) '()] ; Caso base: si el alto es 0, retorna lista vacia
-          [else (cons (crear-fila ancho) (crear-tablero ancho (- alto 1)))]))
+  (cond [(= alto 0) '()]
+        [else (cons (crear-fila ancho) (crear-tablero ancho (- alto 1)))]))
 
 (define (crear-fila ancho)
-    (make-list ancho 0)) ; Crea una fila de ancho inicializada con ceros
+  (make-list ancho 0))
 
-; Función recursiva para obtener el valor de una casilla específica (fila, columna)
-; usando programación funcional con car y cdr
+; Obtener valor de una casilla
 (define (obtener-valor-casilla tablero fila columna)
-  (cond [(or (< fila 0) (< columna 0) (null? tablero)) #f] ; Caso base: fuera de límites
-        [(= fila 0) (obtener-elemento-fila (car tablero) columna)] ; Si estamos en la fila correcta
-        [else (obtener-valor-casilla (cdr tablero) (- fila 1) columna)])) ; Recorrer recursivamente
+  (cond [(or (< fila 0) (< columna 0) (null? tablero)) #f]
+        [(= fila 0) (obtener-elemento-fila (car tablero) columna)]
+        [else (obtener-valor-casilla (cdr tablero) (- fila 1) columna)]))
 
-; Función recursiva para obtener un elemento de una fila específica
 (define (obtener-elemento-fila fila columna)
-  (cond [(or (< columna 0) (null? fila)) #f] ; Caso base: fuera de límites
-        [(= columna 0) (car fila)] ; Si estamos en la columna correcta
-        [else (obtener-elemento-fila (cdr fila) (- columna 1))])) ; Recorrer recursivamente
+  (cond [(or (< columna 0) (null? fila)) #f]
+        [(= columna 0) (car fila)]
+        [else (obtener-elemento-fila (cdr fila) (- columna 1))]))
 
-; Función para actualizar una casilla en el tablero (devuelve nuevo tablero)
-; Usando programación funcional inmutable
+; Actualizar una casilla
 (define (actualizar-casilla tablero fila columna nuevo-valor)
-  (cond [(or (< fila 0) (null? tablero)) tablero] ; Caso base
-        [(= fila 0) (cons (actualizar-fila (car tablero) columna nuevo-valor) 
-                         (cdr tablero))] ; Actualizar la fila correcta
-        [else (cons (car tablero) 
-                   (actualizar-casilla (cdr tablero) (- fila 1) columna nuevo-valor))])) ; Recorrer recursivamente
+  (cond [(or (< fila 0) (null? tablero)) tablero]
+        [(= fila 0) (cons (actualizar-fila (car tablero) columna nuevo-valor)
+                          (cdr tablero))]
+        [else (cons (car tablero)
+                    (actualizar-casilla (cdr tablero) (- fila 1) columna nuevo-valor))]))
 
-; Función auxiliar para actualizar una fila
 (define (actualizar-fila fila columna nuevo-valor)
-  (cond [(or (< columna 0) (null? fila)) fila] ; Caso base
-        [(= columna 0) (cons nuevo-valor (cdr fila))] ; Reemplazar el elemento
-        [else (cons (car fila) 
-                   (actualizar-fila (cdr fila) (- columna 1) nuevo-valor))])) ; Recorrer recursivamente
+  (cond [(or (< columna 0) (null? fila)) fila]
+        [(= columna 0) (cons nuevo-valor (cdr fila))]
+        [else (cons (car fila)
+                    (actualizar-fila (cdr fila) (- columna 1) nuevo-valor))]))
 
-; Función recursiva para obtener una fila específica del tablero
+; Obtener una fila
 (define (obtener-fila tablero indice-fila)
-  (cond [(or (< indice-fila 0) (null? tablero)) '()] ; Caso base
-        [(= indice-fila 0) (car tablero)] ; Fila encontrada
-        [else (obtener-fila (cdr tablero) (- indice-fila 1))])) ; Recorrer recursivamente
+  (cond [(or (< indice-fila 0) (null? tablero)) '()]
+        [(= indice-fila 0) (car tablero)]
+        [else (obtener-fila (cdr tablero) (- indice-fila 1))]))
 
-; Función recursiva para contar elementos en una lista
+; Contar elementos
 (define (contar-elementos lista)
-  (cond [(null? lista) 0] ; Caso base
-        [else (+ 1 (contar-elementos (cdr lista)))])) ; Contar recursivamente
+  (cond [(null? lista) 0]
+        [else (+ 1 (contar-elementos (cdr lista)))]))
 
-; Función recursiva para recorrer el tablero y aplicar una función a cada elemento
+; Recorrer tablero
 (define (recorrer-tablero tablero funcion fila)
-  (cond [(null? tablero) '()] ; Caso base
+  (cond [(null? tablero) '()]
         [else (cons (recorrer-fila (car tablero) funcion fila 0)
-                   (recorrer-tablero (cdr tablero) funcion (+ fila 1)))])) ; Recorrer recursivamente
+                    (recorrer-tablero (cdr tablero) funcion (+ fila 1)))]))
 
-; Función auxiliar para recorrer una fila
 (define (recorrer-fila fila funcion indice-fila columna)
-  (cond [(null? fila) '()] ; Caso base
+  (cond [(null? fila) '()]
         [else (cons (funcion (car fila) indice-fila columna)
-                   (recorrer-fila (cdr fila) funcion indice-fila (+ columna 1)))])) ; Recorrer recursivamente
+                    (recorrer-fila (cdr fila) funcion indice-fila (+ columna 1)))]))
+
+; Generar lista-barajada como matriz
+(define (generar-lista-barajada ancho alto num-minas)
+  (unless (and (> ancho 0) (> alto 0) (>= num-minas 0))
+    (error "Error: ancho, alto deben ser > 0, num-minas >= 0"))
+  (let* ([total-casillas (* ancho alto)]
+         [lista-plana (barajar (lista1 total-casillas num-minas) total-casillas)])
+    (list->matriz lista-plana ancho alto)))
+
+(define (lista1 total-casillas NumMinas)
+  (unless (>= total-casillas NumMinas)
+    (error "Error: total-casillas debe ser >= NumMinas"))
+  (cond ((= total-casillas 0) '())
+        ((> NumMinas 0) (cons 1 (lista1 (- total-casillas 1) (- NumMinas 1))))
+        (else (cons 0 (lista1 (- total-casillas 1) NumMinas)))))
+
+(define (quitar-en-posicion lista indice)
+  (cond
+    ((zero? indice) (values (car lista) (cdr lista)))
+    (else
+     (define-values (elemento lista-restante) (quitar-en-posicion (cdr lista) (- indice 1)))
+     (values elemento (cons (car lista) lista-restante)))))
+
+(define (barajar lista numero-elementos)
+  (cond
+    ((<= numero-elementos 1) lista)
+    (else
+     (define indice (random numero-elementos))
+     (define-values (seleccionado resto) (quitar-en-posicion lista indice))
+     (cons seleccionado (barajar resto (- numero-elementos 1))))))
+
+(define (list->matriz lista ancho alto)
+  (if (or (null? lista) (= alto 0))
+      '()
+      (cons (take lista ancho)
+            (list->matriz (drop lista ancho) ancho (- alto 1)))))
