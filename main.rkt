@@ -5,7 +5,8 @@
 (require racket/gui/base 
          racket/class
          "logica.rkt" ; Archivo con la lógica del juego
-         "barajado.rkt" ; Archivo con lógica de barajado 
+         "barajado.rkt" ; Archivo con lógica de barajado
+         "adyacentes_grafica.rkt" ; Archivo con lógica de el dscubrimeinto de minas adyacentes en la GUI
          "adyacentes.rkt") ; Archivo con lógica de el dscubrimeinto de minas adyacentes
 
 (define ancho-tablero 8)
@@ -235,21 +236,22 @@
          (send boton set-label "mina") ;Imprime mina para evitar confuciones
          (mostrar-mensaje-derrota)]
     ;; Caso casilla segura -> revisar minas adyacentes
+    ;; Seguro -> ver adyacentes
     [else
      (define minas (calcular-minas-adyacentes lista-barajada fila columna))
      (cond
-       ;; Si hay minas alrededor, solo mostrar el número
        [(> minas 0)
         (send boton set-label (number->string minas))
         (send boton enable #f)
         (set! casillas-descubiertas (+ casillas-descubiertas 1))
         (verificar-victoria)]
 
-       ;; Si no hay minas alrededor -> expansión recursiva
        [else
-        (descubrir-vecinas-gui fila columna)
+        ;; Usamos la versión de GUI con contador en box
+        (define contador (box casillas-descubiertas))
+        (descubrir-vecinas-gui fila columna tablero-visual ancho-tablero alto-tablero lista-barajada contador)
+        (set! casillas-descubiertas (unbox contador))
         (verificar-victoria)])]))
-
 
 ; Función modular vacía para marcar/desmarcar bandera
 (define (marcar-bandera fila columna boton)
@@ -260,20 +262,6 @@
          (send boton set-label "")]
         [else
          (send boton set-label "🚩")]))
-
-; Función modular vacía para calcular minas adyacentes
-(define (calcular-minas-adyacentes fila columna)
-  ; TODO: Implementar cálculo de minas adyacentes
-  ; - Revisar las 8 casillas alrededor
-  ; - Contar cuántas son minas
-  0)
-
-; Función modular vacía para descubrir casillas vecinas (cuando es 0)
-(define (descubrir-vecinas fila columna)
-  ; TODO: Implementar descubrimiento recursivo de vecinas
-  ; - Si la casilla tiene 0 minas adyacentes
-  ; - Descubrir todas las casillas vecinas recursivamente
-  #f)
 
 ; Función modular vacía para verificar victoria
 (define (verificar-victoria)
