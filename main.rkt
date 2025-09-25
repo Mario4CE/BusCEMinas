@@ -10,7 +10,7 @@
 (define tablero '()) ; Matriz para tablero-logico
 (define tablero-visual '()) ; Matriz de botones para la interfaz
 (define estado-juego 'activo) ; 'activo, 'ganado, 'perdido
-(define casillas-descubiertas 0)
+(define casillas-descubiertas-ref (box 0)) ; Box to track discovered cells
 (define total-casillas-seguras 0)
 (define lista-barajada '()) ; Matriz con valores 0 y 1
 
@@ -88,9 +88,10 @@
 (define (generar-tablero)
   (define num-minas (calcular-minas ancho-tablero alto-tablero nivel-dificultad))
   (set! lista-barajada (generar-lista-barajada ancho-tablero alto-tablero num-minas))
+  (displayln (format "lista-barajada: ~a" lista-barajada))
   (set! tablero (crear-tablero ancho-tablero alto-tablero))
   (set! estado-juego 'activo)
-  (set! casillas-descubiertas 0)
+  (set-box! casillas-descubiertas-ref 0)
   (set! total-casillas-seguras (- (* ancho-tablero alto-tablero) num-minas))
   (crear-ventana-juego))
 
@@ -130,7 +131,8 @@
          (define fila-botones (crear-fila-botones row-panel (car tablero) fila 0))
          (cons fila-botones
                (crear-tablero-visual parent (cdr tablero) (+ fila 1)))]))
-
+               
+; Crear fila de botones
 (define (crear-fila-botones parent fila-datos fila columna)
   (cond [(null? fila-datos) '()]
         [else
@@ -149,8 +151,12 @@
   (cond [(eq? estado-juego 'activo)
          (cond [(eq? (send evento get-event-type) 'button)
                 (with-handlers ([exn:fail? (lambda (exn)
-                                             (set! estado-juego 'perdido)
-                                             (mostrar-mensaje-derrota))])
+                                             (displayln (format "Excepción en (~a,~a): ~a" fila columna (exn-message exn)))
+                                             (if (string=? (exn-message exn) "¡Mina encontrada!")
+                                                 (begin
+                                                   (set! estado-juego 'perdido)
+                                                   (mostrar-mensaje-derrota))
+                                                 (displayln "Error no relacionado con mina, ignorando")))])
                   (descubrir-casilla fila columna boton))]
                [(eq? (send evento get-event-type) 'right-down)
                 (marcar-bandera fila columna boton)]
@@ -160,27 +166,39 @@
 ; Descubrir una casilla
 (define (descubrir-casilla fila columna boton)
   (when (and (eq? estado-juego 'activo) (send boton is-enabled?))
+    (displayln (format "Clic en (~a,~a), botón habilitado: ~a" fila columna (send boton is-enabled?)))
     (define valor-casilla (obtener-valor-casilla lista-barajada fila columna))
+    (displayln (format "Casilla (~a,~a): valor=~a" fila columna valor-casilla))
     (when (and valor-casilla (= valor-casilla 1))
+      (displayln (format "Mina encontrada en (~a,~a)" fila columna))
       (send boton set-label "MINA")
       (set! estado-juego 'perdido)
       (mostrar-mensaje-derrota)
       (error "¡Mina encontrada!"))
+
     (define minas (calcular-minas-adyacentes lista-barajada fila columna))
+    (displayln (format "Casilla (~a,~a): minas adyacentes=~a" fila columna minas))
+
     (cond
       [(> minas 0)
+       (displayln (format "Marcando (~a,~a) con número: ~a" fila columna minas))
        (send boton set-label (number->string minas))
        (send boton enable #f)
-       (set! casillas-descubiertas (+ casillas-descubiertas 1))
+       (set-box! casillas-descubiertas-ref (add1 (unbox casillas-descubiertas-ref)))
        (set! tablero (actualizar-casilla tablero fila columna minas))
        (verificar-victoria)]
       [else
+       (displayln (format "Click en (~a,~a) era 0 → marcando y expandiendo vecinos..." fila columna))
        (send boton set-label "")
        (send boton enable #f)
-       (set! casillas-descubiertas (+ casillas-descubiertas 1))
-       (set! tablero (actualizar-casilla tablero fila columna 0))
-       (set! tablero (descubrir-vecinas-gui fila columna tablero-visual tablero ancho-tablero alto-tablero lista-barajada (box casillas-descubiertas)))
-       (set! casillas-descubiertas (unbox (box casillas-descubiertas)))
+       (set-box! casillas-descubiertas-ref (add1 (unbox casillas-descubiertas-ref)))
+       (displayln (format "Tablero lógico antes de expansión: ~a" tablero))
+       (set! tablero
+             (descubrir-vecinas-gui fila columna
+                                    tablero-visual tablero
+                                    ancho-tablero alto-tablero
+                                    lista-barajada casillas-descubiertas-ref))
+       (displayln (format "Tablero lógico tras expansión: ~a" tablero))
        (verificar-victoria)])))
 
 ; Marcar/desmarcar bandera
@@ -192,7 +210,9 @@
 
 ; Verificar victoria
 (define (verificar-victoria)
-  (cond [(>= casillas-descubiertas total-casillas-seguras)
+  (displayln (format "Verificando victoria: casillas descubiertas=~a, total seguras=~a"
+                     (unbox casillas-descubiertas-ref) total-casillas-seguras))
+  (cond [(>= (unbox casillas-descubiertas-ref) total-casillas-seguras)
          (set! estado-juego 'ganado)
          (mostrar-mensaje-victoria)]
         [else #f]))
