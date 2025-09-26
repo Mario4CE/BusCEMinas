@@ -69,7 +69,7 @@
            (set-box! casillas-descubiertas-ref (add1 (unbox casillas-descubiertas-ref)))
            (actualizar-casilla tablero fila col minas)]
           [else
-           (send boton set-label "")
+           (send boton set-label "0")
            (send boton enable #f)
            (set-box! casillas-descubiertas-ref (add1 (unbox casillas-descubiertas-ref)))
            (expandir-vecinos-extendido
