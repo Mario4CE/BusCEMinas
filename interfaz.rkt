@@ -265,6 +265,8 @@
 
 ; Reiniciar el juego
 (define (reiniciar-juego ventana-actual)
+  (set! contador-banderas-correctas 0)
+  (set! modo-bandera-activo #f)
   (send ventana-actual show #f)
   (generar-tablero))
 
