@@ -189,12 +189,12 @@
 (define (marcar-bandera fila columna boton)
   (define num-minas (calcular-minas ancho-tablero alto-tablero nivel-dificultad))
   (define minado (es-mina fila columna))
-  (cond [(string=? (send boton get-label) "?")
+  (cond [(string=? (send boton get-label) "🚩")
          (send boton set-label "")
          (when minado
            (set! contador-banderas-correctas (- contador-banderas-correctas 1)))]
         [else
-         (send boton set-label "?")
+         (send boton set-label "🚩")
          (when minado
            (set! contador-banderas-correctas (+ contador-banderas-correctas 1)))])
 
